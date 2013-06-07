@@ -3,7 +3,8 @@
             [io.pedestal.app :as app]
             [io.pedestal.app.render.push :as push-render]
             [io.pedestal.app.render :as render]
-            [io.pedestal.app.messages :as msg]
+            [io.pedestal.app.messages :as msg]            
+            [todo.services :as services]
             [todo.behavior :as behavior]
             [todo.rendering :as rendering]))
 
@@ -36,13 +37,16 @@
     ;; (app/consume-effect app services-fn)
     ;;
     ;; Start the application
-    (app/begin app)
-    (.setInterval js/window #(.log js/console (pr-str (:data-model app))) 3000)
+    (app/begin app)    
     ;; Send a message to the application so that it does something.
-    (p/put-message (:input app) {msg/type :create-todo msg/topic [:todo]})    
-    ;; Returning the app and app-model from the main function allows
-    ;; the tooling to add support for useful features like logging
-    ;; and recording.
+    (p/put-message (:input app) {msg/type :create-todo msg/topic [:todo]})        
+    ;(services-fn {:out-message {:x 5}})
+    (app/consume-output app services/services-fn)
+    (p/put-message (:output app) {msg/type msg/output msg/topic [:server]
+                                  :service-request {:x :something}
+                                  :return-fn (fn [response input-queue]
+                                               (.log js/console "I am in the return fn")
+                                               (.log js/console (pr-str response)))})
     {:app app :app-model app-model}))
 
 (defn ^:export main []
@@ -51,3 +55,5 @@
   ;; main function. To tie into tooling, this function should return
   ;; the newly created app.
   (create-app (rendering/render-config)))
+
+
